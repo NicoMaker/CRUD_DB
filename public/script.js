@@ -101,6 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Applica il tema salvato
   applyTheme();
 
+  // Inizializza la vista corretta
+  initializeView();
+
   // Carica le persone all'avvio
   loadPersons();
 
@@ -128,16 +131,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Event listeners - Viste
   viewButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const viewType = btn.getAttribute("data-view");
-      switchView(viewType);
+    btn.addEventListener("click", function () {
+      const viewType = this.getAttribute("data-view");
 
-      // Aggiorna i pulsanti attivi
+      // Aggiorna lo stato attivo dei pulsanti
       viewButtons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+      this.classList.add("active");
 
-      // Salva la preferenza
-      localStorage.setItem("defaultView", viewType);
+      // Cambia la vista
+      switchView(viewType);
     });
   });
 
@@ -184,6 +186,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     localStorage.setItem("theme", theme);
     updateThemeToggleButton();
+
+    // Aggiorna i grafici se siamo nella sezione statistiche
+    if (currentSection === "statistics") {
+      updateCharts();
+    }
   });
 
   defaultViewSelect.addEventListener("change", () => {
@@ -224,6 +231,21 @@ document.addEventListener("DOMContentLoaded", () => {
   lastNameInput.addEventListener("input", validateLastName);
   emailInput.addEventListener("input", validateEmail);
 
+  // Funzione per inizializzare la vista corretta
+  function initializeView() {
+    // Imposta la vista corrente in base alle preferenze salvate
+    const savedView = localStorage.getItem("defaultView") || "table";
+    currentView = savedView;
+
+    // Aggiorna i pulsanti delle viste
+    viewButtons.forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-view") === savedView);
+    });
+
+    // Applica la vista corrente
+    switchView(currentView);
+  }
+
   // Funzione per caricare le persone dal server
   async function loadPersons() {
     try {
@@ -260,10 +282,19 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       emptyMessage.style.display = "none";
 
-      // Mostra la vista corrente
-      tableView.style.display = currentView === "table" ? "block" : "none";
-      cardsView.style.display = currentView === "cards" ? "block" : "none";
-      listView.style.display = currentView === "list" ? "block" : "none";
+      // Nascondi tutte le viste
+      tableView.style.display = "none";
+      cardsView.style.display = "none";
+      listView.style.display = "none";
+
+      // Mostra solo la vista corrente
+      if (currentView === "table") {
+        tableView.style.display = "block";
+      } else if (currentView === "cards") {
+        cardsView.style.display = "block";
+      } else if (currentView === "list") {
+        listView.style.display = "block";
+      }
 
       // Aggiungi ogni persona alle viste
       persons.forEach((person) => {
@@ -451,12 +482,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Funzione per cambiare vista
   function switchView(viewType) {
+    // Aggiorna la variabile di stato
     currentView = viewType;
 
-    tableView.classList.toggle("active-view", viewType === "table");
-    cardsView.classList.toggle("active-view", viewType === "cards");
-    listView.classList.toggle("active-view", viewType === "list");
+    // Nascondi tutte le viste
+    tableView.style.display = "none";
+    cardsView.style.display = "none";
+    listView.style.display = "none";
 
+    // Mostra solo la vista selezionata
+    if (viewType === "table") {
+      tableView.style.display = "block";
+    } else if (viewType === "cards") {
+      cardsView.style.display = "block";
+    } else if (viewType === "list") {
+      listView.style.display = "block";
+    }
+
+    // Salva la preferenza
     localStorage.setItem("defaultView", viewType);
   }
 
@@ -577,6 +620,9 @@ document.addEventListener("DOMContentLoaded", () => {
       totalContactsElement.textContent = "0";
       emailDomainsElement.textContent = "0";
       phoneCountriesElement.textContent = "0";
+
+      // Inizializza grafici vuoti
+      updateCharts({}, {});
       return;
     }
 
@@ -926,14 +972,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Imposta la vista corrente
     currentView = defaultView;
-
-    // Aggiorna i pulsanti delle viste
-    viewButtons.forEach(btn => {
-      btn.classList.toggle("active", btn.getAttribute("data-view") === defaultView);
-    });
-
-    // Imposta il prefisso predefinito
-    updateSelectedPrefix(defaultPrefix, defaultCountry);
   }
 
   // Funzione per ripristinare le impostazioni predefinite
