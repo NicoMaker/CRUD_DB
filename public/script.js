@@ -98,12 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Carica le impostazioni
   loadSettings();
 
-  // Applica il tema salvato
-  applyTheme();
-
-  // Inizializza la vista corretta
-  initializeView();
-
   // Carica le persone all'avvio
   loadPersons();
 
@@ -171,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Event listeners - Impostazioni
   themeSelect.addEventListener("change", () => {
+    // Mostra un'anteprima del tema selezionato
     const theme = themeSelect.value;
     if (theme === "light") {
       document.body.classList.remove("dark-theme");
@@ -184,7 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.toggle("dark-theme", prefersDark);
       isDarkTheme = prefersDark;
     }
-    localStorage.setItem("theme", theme);
     updateThemeToggleButton();
 
     // Aggiorna i grafici se siamo nella sezione statistiche
@@ -194,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   defaultViewSelect.addEventListener("change", () => {
+    // Mostra un'anteprima della vista selezionata
     const view = defaultViewSelect.value;
     switchView(view);
     viewButtons.forEach(btn => {
@@ -202,10 +197,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   defaultPrefixSelect.addEventListener("change", () => {
+    // Mostra un'anteprima del prefisso selezionato
     const prefix = defaultPrefixSelect.value;
     const country = defaultPrefixSelect.options[defaultPrefixSelect.selectedIndex].getAttribute("data-country");
-    localStorage.setItem("defaultPrefix", prefix);
-    localStorage.setItem("defaultCountry", country);
+    updateSelectedPrefix(prefix, country);
+  });
+
+  dateFormatSelect.addEventListener("change", () => {
+    // Se ci sono persone, aggiorna la visualizzazione per mostrare il nuovo formato data
+    if (allPersons.length > 0 && currentView === "cards") {
+      renderPersons(allPersons);
+    }
   });
 
   saveSettingsBtn.addEventListener("click", saveSettings);
@@ -230,21 +232,6 @@ document.addEventListener("DOMContentLoaded", () => {
   firstNameInput.addEventListener("input", validateFirstName);
   lastNameInput.addEventListener("input", validateLastName);
   emailInput.addEventListener("input", validateEmail);
-
-  // Funzione per inizializzare la vista corretta
-  function initializeView() {
-    // Imposta la vista corrente in base alle preferenze salvate
-    const savedView = localStorage.getItem("defaultView") || "table";
-    currentView = savedView;
-
-    // Aggiorna i pulsanti delle viste
-    viewButtons.forEach(btn => {
-      btn.classList.toggle("active", btn.getAttribute("data-view") === savedView);
-    });
-
-    // Applica la vista corrente
-    switchView(currentView);
-  }
 
   // Funzione per caricare le persone dal server
   async function loadPersons() {
@@ -941,37 +928,74 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem(key, settings[key]);
     }
 
-    // Applica le impostazioni
-    applyTheme();
-    switchView(settings.defaultView);
+    // Applica immediatamente le impostazioni
+    applySettings(settings);
 
-    // Aggiorna i pulsanti delle viste
+    showToast("Impostazioni salvate con successo", "success");
+  }
+
+  // Funzione per applicare le impostazioni
+  function applySettings(settings) {
+    // Applica il tema
+    if (settings.theme === "dark") {
+      document.body.classList.add("dark-theme");
+      isDarkTheme = true;
+    } else if (settings.theme === "light") {
+      document.body.classList.remove("dark-theme");
+      isDarkTheme = false;
+    } else {
+      // Auto - usa le preferenze del sistema
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.body.classList.toggle("dark-theme", prefersDark);
+      isDarkTheme = prefersDark;
+    }
+    updateThemeToggleButton();
+
+    // Applica la vista predefinita
+    currentView = settings.defaultView;
+    switchView(settings.defaultView);
     viewButtons.forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-view") === settings.defaultView);
     });
 
-    showToast("Impostazioni salvate con successo", "success");
+    // Applica il prefisso predefinito
+    updateSelectedPrefix(settings.defaultPrefix, settings.defaultCountry);
+
+    // Aggiorna i grafici se siamo nella sezione statistiche
+    if (currentSection === "statistics") {
+      updateCharts();
+    }
+
+    // Se ci sono persone e siamo nella vista cards, aggiorna per il nuovo formato data
+    if (allPersons.length > 0 && currentView === "cards") {
+      renderPersons(allPersons);
+    }
   }
 
   // Funzione per caricare le impostazioni
   function loadSettings() {
     // Carica le impostazioni da localStorage o usa i valori predefiniti
-    const theme = localStorage.getItem("theme") || defaultSettings.theme;
-    const defaultView = localStorage.getItem("defaultView") || defaultSettings.defaultView;
-    const defaultPrefix = localStorage.getItem("defaultPrefix") || defaultSettings.defaultPrefix;
-    const defaultCountry = localStorage.getItem("defaultCountry") || defaultSettings.defaultCountry;
-    const backupEnabled = localStorage.getItem("backupEnabled") === "true";
-    const dateFormat = localStorage.getItem("dateFormat") || defaultSettings.dateFormat;
+    const settings = {
+      theme: localStorage.getItem("theme") || defaultSettings.theme,
+      defaultView: localStorage.getItem("defaultView") || defaultSettings.defaultView,
+      defaultPrefix: localStorage.getItem("defaultPrefix") || defaultSettings.defaultPrefix,
+      defaultCountry: localStorage.getItem("defaultCountry") || defaultSettings.defaultCountry,
+      backupEnabled: localStorage.getItem("backupEnabled") === "true",
+      dateFormat: localStorage.getItem("dateFormat") || defaultSettings.dateFormat
+    };
 
     // Imposta i valori nei controlli
-    themeSelect.value = theme;
-    defaultViewSelect.value = defaultView;
-    defaultPrefixSelect.value = defaultPrefix;
-    backupToggle.checked = backupEnabled;
-    dateFormatSelect.value = dateFormat;
+    themeSelect.value = settings.theme;
+    defaultViewSelect.value = settings.defaultView;
+    defaultPrefixSelect.value = settings.defaultPrefix;
+    backupToggle.checked = settings.backupEnabled;
+    dateFormatSelect.value = settings.dateFormat;
 
     // Imposta la vista corrente
-    currentView = defaultView;
+    currentView = settings.defaultView;
+
+    // Applica le impostazioni
+    applySettings(settings);
   }
 
   // Funzione per ripristinare le impostazioni predefinite
@@ -1323,4 +1347,7 @@ document.addEventListener("DOMContentLoaded", () => {
       clearDataModal.style.display = "none";
     }
   });
+
+  // Applica il tema all'avvio
+  applyTheme();
 });
