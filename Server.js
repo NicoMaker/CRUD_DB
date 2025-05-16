@@ -36,6 +36,21 @@ db.serialize(() => {
   `);
 });
 
+// Funzione per validare l'email
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Funzione per validare il numero di telefono
+function validatePhone(phone) {
+  if (!phone) return true; // Il telefono è opzionale
+
+  // Verifica che il formato sia corretto: +XX XXXXXXXXXX
+  const phoneRegex = /^\+\d+ \d{10}$/;
+  return phoneRegex.test(phone);
+}
+
 // API Routes
 
 // GET - Leggere tutte le persone
@@ -60,6 +75,20 @@ app.post("/api/items", (req, res) => {
   if (!firstName || !lastName || !email) {
     return res.status(400).json({
       error: "I campi Nome, Cognome e Email sono obbligatori",
+    });
+  }
+
+  // Validazione dell'email
+  if (!validateEmail(email)) {
+    return res.status(400).json({
+      error: "L'indirizzo email non è valido",
+    });
+  }
+
+  // Validazione del telefono
+  if (phone && !validatePhone(phone)) {
+    return res.status(400).json({
+      error: "Il numero di telefono deve avere il formato +XX XXXXXXXXXX",
     });
   }
 
@@ -109,6 +138,20 @@ app.put("/api/items/:id", (req, res) => {
   if (!firstName || !lastName || !email) {
     return res.status(400).json({
       error: "I campi Nome, Cognome e Email sono obbligatori",
+    });
+  }
+
+  // Validazione dell'email
+  if (!validateEmail(email)) {
+    return res.status(400).json({
+      error: "L'indirizzo email non è valido",
+    });
+  }
+
+  // Validazione del telefono
+  if (phone && !validatePhone(phone)) {
+    return res.status(400).json({
+      error: "Il numero di telefono deve avere il formato +XX XXXXXXXXXX",
     });
   }
 
