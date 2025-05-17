@@ -10,9 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@6.6.6/css/flag-icons.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <script src="script.js" defer></script>
 </head>
 
@@ -27,10 +25,6 @@
         <a href="#" class="nav-item active" data-section="contacts">
           <i class="fas fa-users"></i>
           <span>Persone</span>
-        </a>
-        <a href="#" class="nav-item" data-section="statistics">
-          <i class="fas fa-chart-bar"></i>
-          <span>Statistiche</span>
         </a>
         <a href="#" class="nav-item" data-section="settings">
           <i class="fas fa-cog"></i>
@@ -119,70 +113,6 @@
         </div>
       </div>
 
-      <!-- Sezione Statistiche -->
-      <div id="statisticsSection" class="content-section">
-        <div class="content-area">
-          <div class="stats-container">
-            <div class="stats-row">
-              <div class="stats-card">
-                <div class="stats-icon">
-                  <i class="fas fa-users"></i>
-                </div>
-                <div class="stats-info">
-                  <h3>Totale Contatti</h3>
-                  <p id="totalContacts">0</p>
-                </div>
-              </div>
-
-              <div class="stats-card">
-                <div class="stats-icon">
-                  <i class="fas fa-envelope"></i>
-                </div>
-                <div class="stats-info">
-                  <h3>Domini Email</h3>
-                  <p id="emailDomains">0</p>
-                </div>
-              </div>
-
-              <div class="stats-card">
-                <div class="stats-icon">
-                  <i class="fas fa-phone"></i>
-                </div>
-                <div class="stats-info">
-                  <h3>Prefissi Telefonici</h3>
-                  <p id="phoneCountries">0</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="charts-row">
-              <div class="chart-container">
-                <h3>Distribuzione Domini Email</h3>
-                <canvas id="emailChart"></canvas>
-              </div>
-
-              <div class="chart-container">
-                <h3>Distribuzione Prefissi Telefonici</h3>
-                <canvas id="phoneChart"></canvas>
-              </div>
-            </div>
-
-            <div class="export-section">
-              <h3>Esporta Dati</h3>
-              <p>Scarica i dati in formato CSV o Excel</p>
-              <div class="export-buttons">
-                <button id="exportCSV" class="btn btn-secondary">
-                  <i class="fas fa-file-csv"></i> Esporta CSV
-                </button>
-                <button id="exportExcel" class="btn btn-secondary">
-                  <i class="fas fa-file-excel"></i> Esporta Excel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Sezione Impostazioni -->
       <div id="settingsSection" class="content-section">
         <div class="content-area">
@@ -225,16 +155,7 @@
                 </div>
                 <div class="setting-control">
                   <select id="defaultPrefixSelect" class="settings-select">
-                    <option value="+39" data-country="it">Italia (+39)</option>
-                    <option value="+1" data-country="us">Stati Uniti (+1)</option>
-                    <option value="+44" data-country="gb">Regno Unito (+44)</option>
-                    <option value="+33" data-country="fr">Francia (+33)</option>
-                    <option value="+49" data-country="de">Germania (+49)</option>
-                    <option value="+34" data-country="es">Spagna (+34)</option>
-                    <option value="+41" data-country="ch">Svizzera (+41)</option>
-                    <option value="+43" data-country="at">Austria (+43)</option>
-                    <option value="+32" data-country="be">Belgio (+32)</option>
-                    <option value="+31" data-country="nl">Paesi Bassi (+31)</option>
+                    <!-- I prefissi verranno caricati dinamicamente dal file countries.json -->
                   </select>
                 </div>
               </div>
@@ -340,106 +261,7 @@
                     <input type="text" id="prefixSearch" placeholder="Cerca paese..." />
                   </div>
                   <div class="prefix-list" id="prefixList">
-                    <div class="prefix-item" data-prefix="+39" data-country="it">
-                      <span class="fi fi-it"></span>
-                      <span class="prefix-country">Italia</span>
-                      <span class="prefix-code">+39</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+1" data-country="us">
-                      <span class="fi fi-us"></span>
-                      <span class="prefix-country">Stati Uniti</span>
-                      <span class="prefix-code">+1</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+44" data-country="gb">
-                      <span class="fi fi-gb"></span>
-                      <span class="prefix-country">Regno Unito</span>
-                      <span class="prefix-code">+44</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+33" data-country="fr">
-                      <span class="fi fi-fr"></span>
-                      <span class="prefix-country">Francia</span>
-                      <span class="prefix-code">+33</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+49" data-country="de">
-                      <span class="fi fi-de"></span>
-                      <span class="prefix-country">Germania</span>
-                      <span class="prefix-code">+49</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+34" data-country="es">
-                      <span class="fi fi-es"></span>
-                      <span class="prefix-country">Spagna</span>
-                      <span class="prefix-code">+34</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+41" data-country="ch">
-                      <span class="fi fi-ch"></span>
-                      <span class="prefix-country">Svizzera</span>
-                      <span class="prefix-code">+41</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+43" data-country="at">
-                      <span class="fi fi-at"></span>
-                      <span class="prefix-country">Austria</span>
-                      <span class="prefix-code">+43</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+32" data-country="be">
-                      <span class="fi fi-be"></span>
-                      <span class="prefix-country">Belgio</span>
-                      <span class="prefix-code">+32</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+31" data-country="nl">
-                      <span class="fi fi-nl"></span>
-                      <span class="prefix-country">Paesi Bassi</span>
-                      <span class="prefix-code">+31</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+351" data-country="pt">
-                      <span class="fi fi-pt"></span>
-                      <span class="prefix-country">Portogallo</span>
-                      <span class="prefix-code">+351</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+30" data-country="gr">
-                      <span class="fi fi-gr"></span>
-                      <span class="prefix-country">Grecia</span>
-                      <span class="prefix-code">+30</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+46" data-country="se">
-                      <span class="fi fi-se"></span>
-                      <span class="prefix-country">Svezia</span>
-                      <span class="prefix-code">+46</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+47" data-country="no">
-                      <span class="fi fi-no"></span>
-                      <span class="prefix-country">Norvegia</span>
-                      <span class="prefix-code">+47</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+45" data-country="dk">
-                      <span class="fi fi-dk"></span>
-                      <span class="prefix-country">Danimarca</span>
-                      <span class="prefix-code">+45</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+358" data-country="fi">
-                      <span class="fi fi-fi"></span>
-                      <span class="prefix-country">Finlandia</span>
-                      <span class="prefix-code">+358</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+48" data-country="pl">
-                      <span class="fi fi-pl"></span>
-                      <span class="prefix-country">Polonia</span>
-                      <span class="prefix-code">+48</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+36" data-country="hu">
-                      <span class="fi fi-hu"></span>
-                      <span class="prefix-country">Ungheria</span>
-                      <span class="prefix-code">+36</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+420" data-country="cz">
-                      <span class="fi fi-cz"></span>
-                      <span class="prefix-country">Repubblica Ceca</span>
-                      <span class="prefix-code">+420</span>
-                    </div>
-                    <div class="prefix-item" data-prefix="+7" data-country="ru">
-                      <span class="fi fi-ru"></span>
-                      <span class="prefix-country">Russia</span>
-                      <span class="prefix-code">+7</span>
-                    </div>
+                    <!-- I prefissi verranno caricati dinamicamente dal file countries.json -->
                   </div>
                 </div>
               </div>

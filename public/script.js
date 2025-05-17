@@ -34,18 +34,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const prefixDropdown = document.getElementById("prefixDropdown");
   const prefixSearch = document.getElementById("prefixSearch");
   const prefixList = document.getElementById("prefixList");
-  const prefixItems = document.querySelectorAll(".prefix-item");
   const selectedPrefixValue = document.getElementById("selectedPrefixValue");
   const selectedCountryCode = document.getElementById("selectedCountryCode");
-
-  // Elementi DOM - Statistiche
-  const totalContactsElement = document.getElementById("totalContacts");
-  const emailDomainsElement = document.getElementById("emailDomains");
-  const phoneCountriesElement = document.getElementById("phoneCountries");
-  const emailChartCanvas = document.getElementById("emailChart");
-  const phoneChartCanvas = document.getElementById("phoneChart");
-  const exportCSVBtn = document.getElementById("exportCSV");
-  const exportExcelBtn = document.getElementById("exportExcel");
 
   // Elementi DOM - Impostazioni
   const themeSelect = document.getElementById("themeSelect");
@@ -81,8 +71,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let allPersons = [];
   let currentView = localStorage.getItem("defaultView") || "table";
   let isDarkTheme = localStorage.getItem("theme") === "dark";
-  let emailChart = null;
-  let phoneChart = null;
   let currentSection = "contacts";
 
   // Impostazioni predefinite
@@ -97,6 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Carica le impostazioni
   loadSettings();
+
+  // Carica i paesi dal file JSON
+  loadCountries();
 
   // Carica le persone all'avvio
   loadPersons();
@@ -143,14 +134,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Event listeners - Prefisso Telefonico
   selectedPrefix.addEventListener("click", togglePrefixDropdown);
   prefixSearch.addEventListener("input", filterPrefixes);
-  prefixItems.forEach(item => {
-    item.addEventListener("click", () => {
-      const prefix = item.getAttribute("data-prefix");
-      const country = item.getAttribute("data-country");
-      updateSelectedPrefix(prefix, country);
-      closePrefixDropdown();
-    });
-  });
 
   // Chiudi il dropdown quando si clicca fuori
   document.addEventListener("click", (e) => {
@@ -158,10 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
       closePrefixDropdown();
     }
   });
-
-  // Event listeners - Statistiche
-  exportCSVBtn.addEventListener("click", exportToCSV);
-  exportExcelBtn.addEventListener("click", exportToExcel);
 
   // Event listeners - Impostazioni
   themeSelect.addEventListener("change", () => {
@@ -180,11 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
       isDarkTheme = prefersDark;
     }
     updateThemeToggleButton();
-
-    // Aggiorna i grafici se siamo nella sezione statistiche
-    if (currentSection === "statistics") {
-      updateCharts();
-    }
   });
 
   defaultViewSelect.addEventListener("change", () => {
@@ -233,6 +207,60 @@ document.addEventListener("DOMContentLoaded", () => {
   lastNameInput.addEventListener("input", validateLastName);
   emailInput.addEventListener("input", validateEmail);
 
+  // Funzione per caricare i paesi dal file JSON
+  async function loadCountries() {
+    try {
+      const response = await fetch('countries.json');
+      const data = await response.json();
+
+      // Popola il dropdown dei prefissi
+      const prefixList = document.getElementById('prefixList');
+      prefixList.innerHTML = '';
+
+      // Popola anche il select nelle impostazioni
+      const defaultPrefixSelect = document.getElementById('defaultPrefixSelect');
+      defaultPrefixSelect.innerHTML = '';
+
+      data.countries.forEach(country => {
+        // Aggiungi al dropdown dei prefissi
+        const prefixItem = document.createElement('div');
+        prefixItem.className = 'prefix-item';
+        prefixItem.dataset.prefix = country.prefix;
+        prefixItem.dataset.country = country.code;
+
+        prefixItem.innerHTML = `
+          <span class="fi fi-${country.code}"></span>
+          <span class="prefix-country">${country.name}</span>
+          <span class="prefix-code">${country.prefix}</span>
+        `;
+
+        prefixItem.addEventListener('click', function () {
+          updateSelectedPrefix(country.prefix, country.code);
+          closePrefixDropdown();
+        });
+
+        prefixList.appendChild(prefixItem);
+
+        // Aggiungi all'elenco delle impostazioni
+        const option = document.createElement('option');
+        option.value = country.prefix;
+        option.dataset.country = country.code;
+        option.textContent = `${country.name} (${country.prefix})`;
+
+        // Seleziona l'Italia come predefinito
+        if (country.code === 'it') {
+          option.selected = true;
+        }
+
+        defaultPrefixSelect.appendChild(option);
+      });
+
+    } catch (error) {
+      console.error('Errore nel caricamento dei paesi:', error);
+      showToast('Errore nel caricamento dei prefissi telefonici', 'error');
+    }
+  }
+
   // Funzione per caricare le persone dal server
   async function loadPersons() {
     try {
@@ -244,9 +272,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Renderizza le persone
       renderPersons(persons);
-
-      // Aggiorna le statistiche
-      updateStatistics();
     } catch (error) {
       console.error("Errore nel caricamento delle persone:", error);
       showToast("Errore nel caricamento delle persone", "error");
@@ -510,11 +535,6 @@ document.addEventListener("DOMContentLoaded", () => {
       sectionDescription.textContent = "Gestisci i dati delle persone in modo semplice ed efficiente";
       searchInput.placeholder = "Cerca persona...";
       document.querySelector(".search-container").style.display = "flex";
-    } else if (section === "statistics") {
-      sectionTitle.textContent = "Statistiche";
-      sectionDescription.textContent = "Visualizza statistiche e analisi dei dati";
-      document.querySelector(".search-container").style.display = "none";
-      updateStatistics();
     } else if (section === "settings") {
       sectionTitle.textContent = "Impostazioni";
       sectionDescription.textContent = "Personalizza l'applicazione secondo le tue preferenze";
@@ -538,11 +558,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Salva la preferenza
     localStorage.setItem("theme", isDarkTheme ? "dark" : "light");
-
-    // Aggiorna i grafici
-    if (currentSection === "statistics") {
-      updateCharts();
-    }
   }
 
   // Funzione per applicare il tema
@@ -601,292 +616,6 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedCountryCode.value = country;
   }
 
-  // Funzione per aggiornare le statistiche
-  function updateStatistics() {
-    if (!allPersons.length) {
-      totalContactsElement.textContent = "0";
-      emailDomainsElement.textContent = "0";
-      phoneCountriesElement.textContent = "0";
-
-      // Inizializza grafici vuoti
-      updateCharts({}, {});
-      return;
-    }
-
-    // Totale contatti
-    totalContactsElement.textContent = allPersons.length;
-
-    // Domini email
-    const emailDomains = {};
-    allPersons.forEach(person => {
-      if (person.email) {
-        const domain = person.email.split('@')[1];
-        if (domain) {
-          emailDomains[domain] = (emailDomains[domain] || 0) + 1;
-        }
-      }
-    });
-    emailDomainsElement.textContent = Object.keys(emailDomains).length;
-
-    // Prefissi telefonici
-    const phoneCountries = {};
-    allPersons.forEach(person => {
-      if (person.phone) {
-        const prefix = person.phone.split(' ')[0];
-        if (prefix && prefix.startsWith('+')) {
-          phoneCountries[prefix] = (phoneCountries[prefix] || 0) + 1;
-        }
-      }
-    });
-    phoneCountriesElement.textContent = Object.keys(phoneCountries).length;
-
-    // Aggiorna i grafici
-    updateCharts(emailDomains, phoneCountries);
-  }
-
-  // Funzione per aggiornare i grafici
-  function updateCharts(emailDomains = {}, phoneCountries = {}) {
-    const textColor = isDarkTheme ? '#f5f6fa' : '#2d3436';
-    const gridColor = isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-
-    // Configurazione comune
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            color: textColor
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: gridColor
-          },
-          ticks: {
-            color: textColor
-          }
-        },
-        x: {
-          grid: {
-            color: gridColor
-          },
-          ticks: {
-            color: textColor
-          }
-        }
-      }
-    };
-
-    // Grafico domini email
-    const emailDomainsData = {
-      labels: Object.keys(emailDomains),
-      datasets: [{
-        label: 'Numero di contatti',
-        data: Object.values(emailDomains),
-        backgroundColor: [
-          'rgba(108, 92, 231, 0.7)',
-          'rgba(162, 155, 254, 0.7)',
-          'rgba(46, 204, 113, 0.7)',
-          'rgba(52, 152, 219, 0.7)',
-          'rgba(155, 89, 182, 0.7)',
-          'rgba(241, 196, 15, 0.7)',
-          'rgba(230, 126, 34, 0.7)',
-          'rgba(231, 76, 60, 0.7)'
-        ],
-        borderColor: [
-          'rgba(108, 92, 231, 1)',
-          'rgba(162, 155, 254, 1)',
-          'rgba(46, 204, 113, 1)',
-          'rgba(52, 152, 219, 1)',
-          'rgba(155, 89, 182, 1)',
-          'rgba(241, 196, 15, 1)',
-          'rgba(230, 126, 34, 1)',
-          'rgba(231, 76, 60, 1)'
-        ],
-        borderWidth: 1
-      }]
-    };
-
-    // Grafico prefissi telefonici
-    const phoneCountriesData = {
-      labels: Object.keys(phoneCountries),
-      datasets: [{
-        label: 'Numero di contatti',
-        data: Object.values(phoneCountries),
-        backgroundColor: [
-          'rgba(108, 92, 231, 0.7)',
-          'rgba(162, 155, 254, 0.7)',
-          'rgba(46, 204, 113, 0.7)',
-          'rgba(52, 152, 219, 0.7)',
-          'rgba(155, 89, 182, 0.7)',
-          'rgba(241, 196, 15, 0.7)',
-          'rgba(230, 126, 34, 0.7)',
-          'rgba(231, 76, 60, 0.7)'
-        ],
-        borderColor: [
-          'rgba(108, 92, 231, 1)',
-          'rgba(162, 155, 254, 1)',
-          'rgba(46, 204, 113, 1)',
-          'rgba(52, 152, 219, 1)',
-          'rgba(155, 89, 182, 1)',
-          'rgba(241, 196, 15, 1)',
-          'rgba(230, 126, 34, 1)',
-          'rgba(231, 76, 60, 1)'
-        ],
-        borderWidth: 1
-      }]
-    };
-
-    // Distruggi i grafici esistenti se presenti
-    if (emailChart) emailChart.destroy();
-    if (phoneChart) phoneChart.destroy();
-
-    // Crea nuovi grafici
-    emailChart = new Chart(emailChartCanvas, {
-      type: 'pie',
-      data: emailDomainsData,
-      options: {
-        ...chartOptions,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              color: textColor
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = Math.round((value / total) * 100);
-                return `${label}: ${value} (${percentage}%)`;
-              }
-            }
-          }
-        }
-      }
-    });
-
-    phoneChart = new Chart(phoneChartCanvas, {
-      type: 'bar',
-      data: phoneCountriesData,
-      options: chartOptions
-    });
-  }
-
-  // Funzione per esportare in CSV
-  function exportToCSV() {
-    if (!allPersons.length) {
-      showToast("Non ci sono dati da esportare", "info");
-      return;
-    }
-
-    // Intestazioni CSV
-    const headers = ["ID", "Nome", "Cognome", "Email", "Telefono", "Data di Nascita", "Indirizzo", "Note"];
-
-    // Righe dati
-    const rows = allPersons.map(person => [
-      person.id,
-      person.firstName || "",
-      person.lastName || "",
-      person.email || "",
-      person.phone || "",
-      person.birthDate || "",
-      person.address || "",
-      person.notes || ""
-    ]);
-
-    // Combina intestazioni e righe
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    // Crea un blob e un link per il download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "contatti.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast("Esportazione CSV completata", "success");
-  }
-
-  // Funzione per esportare in Excel
-  function exportToExcel() {
-    if (!allPersons.length) {
-      showToast("Non ci sono dati da esportare", "info");
-      return;
-    }
-
-    // Crea un array di oggetti per l'esportazione
-    const data = allPersons.map(person => ({
-      ID: person.id,
-      Nome: person.firstName || "",
-      Cognome: person.lastName || "",
-      Email: person.email || "",
-      Telefono: person.phone || "",
-      "Data di Nascita": person.birthDate || "",
-      Indirizzo: person.address || "",
-      Note: person.notes || ""
-    }));
-
-    // Converti in XML per Excel
-    let xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
-    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
-    xml += 'xmlns:o="urn:schemas-microsoft-com:office:office" ';
-    xml += 'xmlns:x="urn:schemas-microsoft-com:office:excel" ';
-    xml += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" ';
-    xml += 'xmlns:html="http://www.w3.org/TR/REC-html40">';
-
-    // Aggiungi foglio di lavoro
-    xml += '<Worksheet ss:Name="Contatti">';
-    xml += '<Table>';
-
-    // Intestazioni
-    xml += '<Row>';
-    for (const key in data[0]) {
-      xml += `<Cell><Data ss:Type="String">${key}</Data></Cell>`;
-    }
-    xml += '</Row>';
-
-    // Dati
-    data.forEach(item => {
-      xml += '<Row>';
-      for (const key in item) {
-        const value = item[key] !== null && item[key] !== undefined ? item[key] : "";
-        xml += `<Cell><Data ss:Type="String">${value}</Data></Cell>`;
-      }
-      xml += '</Row>';
-    });
-
-    xml += '</Table></Worksheet></Workbook>';
-
-    // Crea un blob e un link per il download
-    const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "contatti.xls");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast("Esportazione Excel completata", "success");
-  }
-
   // Funzione per cancellare tutti i dati
   async function clearAllData() {
     try {
@@ -900,7 +629,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // Aggiorna la lista
       allPersons = [];
       renderPersons([]);
-      updateStatistics();
 
       // Chiudi il modal
       clearDataModal.style.display = "none";
@@ -961,11 +689,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Applica il prefisso predefinito
     updateSelectedPrefix(settings.defaultPrefix, settings.defaultCountry);
 
-    // Aggiorna i grafici se siamo nella sezione statistiche
-    if (currentSection === "statistics") {
-      updateCharts();
-    }
-
     // Se ci sono persone e siamo nella vista cards, aggiorna per il nuovo formato data
     if (allPersons.length > 0 && currentView === "cards") {
       renderPersons(allPersons);
@@ -987,7 +710,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Imposta i valori nei controlli
     themeSelect.value = settings.theme;
     defaultViewSelect.value = settings.defaultView;
-    defaultPrefixSelect.value = settings.defaultPrefix;
     backupToggle.checked = settings.backupEnabled;
     dateFormatSelect.value = settings.dateFormat;
 
@@ -1142,30 +864,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Funzione per ottenere il codice paese dal prefisso
   function getCountryCodeFromPrefix(prefix) {
-    const prefixMap = {
-      "+39": "it",
-      "+1": "us",
-      "+44": "gb",
-      "+33": "fr",
-      "+49": "de",
-      "+34": "es",
-      "+41": "ch",
-      "+43": "at",
-      "+32": "be",
-      "+31": "nl",
-      "+351": "pt",
-      "+30": "gr",
-      "+46": "se",
-      "+47": "no",
-      "+45": "dk",
-      "+358": "fi",
-      "+48": "pl",
-      "+36": "hu",
-      "+420": "cz",
-      "+7": "ru"
-    };
-
-    return prefixMap[prefix] || "it";
+    // Cerca il codice paese nel select delle impostazioni
+    const options = defaultPrefixSelect.options;
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].value === prefix) {
+        return options[i].getAttribute("data-country");
+      }
+    }
+    return "it"; // Default a Italia se non trovato
   }
 
   // Funzione per aprire la conferma di eliminazione
@@ -1351,3 +1057,93 @@ document.addEventListener("DOMContentLoaded", () => {
   // Applica il tema all'avvio
   applyTheme();
 });
+
+// Aggiungi dopo la dichiarazione delle variabili DOM - Impostazioni
+const prefixSettingsSearch = document.createElement("input");
+prefixSettingsSearch.type = "text";
+prefixSettingsSearch.placeholder = "Cerca paese o prefisso...";
+prefixSettingsSearch.className = "settings-search";
+prefixSettingsSearch.id = "prefixSettingsSearch";
+
+// Aggiungi dopo il caricamento delle impostazioni (loadSettings())
+// Aggiungi il campo di ricerca per i prefissi nelle impostazioni
+function setupPrefixSettingsSearch() {
+  const prefixSettingControl = defaultPrefixSelect.parentElement;
+  prefixSettingControl.insertBefore(prefixSettingsSearch, defaultPrefixSelect);
+
+  prefixSettingsSearch.addEventListener("input", filterPrefixSettings);
+}
+
+// Funzione per filtrare i prefissi nelle impostazioni
+function filterPrefixSettings() {
+  const searchTerm = prefixSettingsSearch.value.toLowerCase();
+  const options = defaultPrefixSelect.options;
+
+  for (let i = 0; i < options.length; i++) {
+    const optionText = options[i].textContent.toLowerCase();
+    const optionValue = options[i].value.toLowerCase();
+
+    if (optionText.includes(searchTerm) || optionValue.includes(searchTerm)) {
+      options[i].style.display = "";
+    } else {
+      options[i].style.display = "none";
+    }
+  }
+}
+
+// Modifica la funzione loadCountries() per chiamare setupPrefixSettingsSearch dopo aver caricato i paesi
+async function loadCountries() {
+  try {
+    const response = await fetch('countries.json');
+    const data = await response.json();
+
+    // Popola il dropdown dei prefissi
+    const prefixList = document.getElementById('prefixList');
+    prefixList.innerHTML = '';
+
+    // Popola anche il select nelle impostazioni
+    const defaultPrefixSelect = document.getElementById('defaultPrefixSelect');
+    defaultPrefixSelect.innerHTML = '';
+
+    data.countries.forEach(country => {
+      // Aggiungi al dropdown dei prefissi
+      const prefixItem = document.createElement('div');
+      prefixItem.className = 'prefix-item';
+      prefixItem.dataset.prefix = country.prefix;
+      prefixItem.dataset.country = country.code;
+
+      prefixItem.innerHTML = `
+        <span class="fi fi-${country.code}"></span>
+        <span class="prefix-country">${country.name}</span>
+        <span class="prefix-code">${country.prefix}</span>
+      `;
+
+      prefixItem.addEventListener('click', function () {
+        updateSelectedPrefix(country.prefix, country.code);
+        closePrefixDropdown();
+      });
+
+      prefixList.appendChild(prefixItem);
+
+      // Aggiungi all'elenco delle impostazioni
+      const option = document.createElement('option');
+      option.value = country.prefix;
+      option.dataset.country = country.code;
+      option.textContent = `${country.name} (${country.prefix})`;
+
+      // Seleziona l'Italia come predefinito
+      if (country.code === 'it') {
+        option.selected = true;
+      }
+
+      defaultPrefixSelect.appendChild(option);
+    });
+
+    // Aggiungi il campo di ricerca per i prefissi nelle impostazioni
+    setupPrefixSettingsSearch();
+
+  } catch (error) {
+    console.error('Errore nel caricamento dei paesi:', error);
+    showToast('Errore nel caricamento dei prefissi telefonici', 'error');
+  }
+}
